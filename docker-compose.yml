@@ -1,0 +1,53 @@
+version: '2.2'
+
+services:
+ mssql:
+  image: avivasolutionsnl.azurecr.io/sxc-mssql:9.0.2
+  mem_limit: 2048m
+  cpu_count: 4
+  environment:
+    ACCEPT_EULA: "Y"
+    sa_password: "my_Sup3rSecret!!"
+
+ solr:
+  image: sitecorecommercedocker_solr
+  mem_limit: 4096m
+
+ xconnect:
+  image:  avivasolutionsnl.azurecr.io/sxc-xconnect:9.0.2
+  volumes:
+    - .\logs\xconnect:C:\inetpub\wwwroot\xconnect\App_data\Logs
+  depends_on:
+    - mssql
+    - solr
+
+ sitecore:
+  image: avivasolutionsnl.azurecr.io/sxc-sitecore:9.0.2
+  cpu_count: 6
+  volumes:
+    - .\logs\sitecore:c:\inetpub\wwwroot\sitecore\App_Data\logs
+    - .\build\website:C:\Workspace
+    - .:c:\vagrant
+  depends_on:
+    - xconnect
+    - mssql
+    - solr
+
+ commerce:
+  build: ./docker/commerce
+  cpu_count: 4
+  volumes:
+    - .\logs\commerce\CommerceAuthoring_Sc9:C:\inetpub\wwwroot\CommerceAuthoring_Sc9\wwwroot\logs
+    - .\logs\commerce\CommerceMinions_Sc9:C:\inetpub\wwwroot\CommerceMinions_Sc9\wwwroot\logs
+    - .\logs\commerce\CommerceOps_Sc9:C:\inetpub\wwwroot\CommerceOps_Sc9\wwwroot\logs
+    - .\logs\commerce\CommerceShops_Sc9:C:\inetpub\wwwroot\CommerceShops_Sc9\wwwroot\logs
+    - .\logs\commerce\SitecoreIdentityServer:C:\inetpub\wwwroot\SitecoreIdentityServer\wwwroot\logs
+    - .\build\commerce:C:\Workspace
+  depends_on:
+    - xconnect
+    - mssql
+    - solr
+    - sitecore
+  restart: on-failure
+  ports:
+    - "4022:4022"
